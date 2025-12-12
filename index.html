@@ -168,14 +168,37 @@ function checkAnswer() {
     if (currentShape === null) return;
 
     const correct = geometries[currentShape][1][currentProp];
-    const user = document.getElementById("answerInput")
-        .value.replace(/\s+/g, "").toLowerCase();
-    const expected = correct.replace(/\s+/g, "").toLowerCase();
+    const userRaw = document.getElementById("answerInput").value;
 
     const key = `${currentShape}-${currentProp}`;
     weights[key] = weights[key] ?? 1;
 
-    if (user === expected) {
+    let isCorrect = false;
+
+    // SPECIAL HANDLING FOR ANGLES (property index 3)
+    if (currentProp === 3) {
+        const splitAngles = str =>
+            str.replace(/\s+/g, "")
+               .split(",")
+               .map(x => x.trim())
+               .filter(x => x.length > 0)
+               .sort();
+
+        const expectedList = splitAngles(correct);
+        const userList = splitAngles(userRaw);
+
+        if (expectedList.length === userList.length) {
+            isCorrect = expectedList.every((v, i) => v === userList[i]);
+        }
+
+    } else {
+        // NORMAL CHECK FOR ALL OTHER PROPERTIES
+        const user = userRaw.replace(/\s+/g, "").toLowerCase();
+        const expected = correct.replace(/\s+/g, "").toLowerCase();
+        isCorrect = (user === expected);
+    }
+
+    if (isCorrect) {
         document.getElementById("resultText").textContent = "Correct";
         document.getElementById("resultText").style.color = "green";
         if (weights[key] > 1) weights[key]--;
