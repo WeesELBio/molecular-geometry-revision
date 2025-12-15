@@ -6,68 +6,36 @@
 <title>Molecular Geometry Revision</title>
 
 <style>
-    body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-        max-width: 600px;
-        margin: auto;
-        padding: 16px;
-        line-height: 1.4;
-    }
+body {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    max-width: 640px;
+    margin: auto;
+    padding: 16px;
+}
+h1 { text-align: center; font-size: 1.4rem; }
+.section { margin-bottom: 16px; }
+label { display: block; margin: 4px 0; }
+input, button {
+    width: 100%;
+    padding: 10px;
+    font-size: 1rem;
+    margin-top: 6px;
+}
+.shape { font-size: 1.2rem; font-weight: bold; text-align: center; margin-top: 12px; }
+.question { text-align: center; margin: 6px 0; }
+.result { text-align: center; font-weight: bold; margin-top: 10px; }
 
-    h1 {
-        font-size: 1.4rem;
-        text-align: center;
-    }
-
-    .section {
-        margin-bottom: 16px;
-    }
-
-    label {
-        display: block;
-        margin: 4px 0;
-    }
-
-    input, button {
-        width: 100%;
-        padding: 10px;
-        font-size: 1rem;
-        margin-top: 6px;
-    }
-
-    button {
-        cursor: pointer;
-    }
-
-    .shape {
-        font-size: 1.2rem;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 16px;
-    }
-
-    .question, .result {
-        text-align: center;
-        margin-top: 10px;
-        font-weight: bold;
-    }
-
-    .chart-bar {
-        background: #ddd;
-        margin: 6px 0;
-        height: 20px;
-        position: relative;
-    }
-
-    .chart-fill {
-        background: #e74c3c;
-        height: 100%;
-    }
-
-    .chart-label {
-        font-size: 0.85rem;
-        margin-bottom: 2px;
-    }
+.bar {
+    background: #ddd;
+    margin: 4px 0;
+}
+.bar-inner {
+    background: #e5533d;
+    color: white;
+    padding: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
 </style>
 </head>
 <body>
@@ -75,18 +43,18 @@
 <h1>Molecular Geometry Revision</h1>
 
 <div class="section">
-    <strong>Shape range</strong>
-    <input type="number" id="minShape" value="1">
-    <input type="number" id="maxShape" value="13">
+<strong>Shape range</strong>
+<label>Min shape # <input type="number" id="minShape" value="1"></label>
+<label>Max shape # <input type="number" id="maxShape" value="13"></label>
 </div>
 
 <div class="section">
-    <strong>Question types</strong>
-    <label><input type="checkbox" checked value="0"> Atoms bonded</label>
-    <label><input type="checkbox" checked value="1"> Lone pairs</label>
-    <label><input type="checkbox" checked value="2"> Electron domains</label>
-    <label><input type="checkbox" checked value="3"> Bond angles</label>
-    <label><input type="checkbox" checked value="4"> Example molecule</label>
+<strong>Question types</strong>
+<label><input type="checkbox" checked value="0"> Atoms bonded</label>
+<label><input type="checkbox" checked value="1"> Lone pairs</label>
+<label><input type="checkbox" checked value="2"> Electron domains</label>
+<label><input type="checkbox" checked value="3"> Bond angles</label>
+<label><input type="checkbox" checked value="4"> Example molecule</label>
 </div>
 
 <div class="shape" id="shapeText"></div>
@@ -99,52 +67,50 @@
 
 <div class="result" id="resultText"></div>
 
-<hr>
-
 <h3>Weak topics</h3>
 <div id="weakChart"></div>
 
 <script>
 const geometries = [
- ["Linear (2 domains)",["2","0","2","180","CO2"]],
- ["Trigonal planar",["3","0","3","120","BF3"]],
- ["Bent (3 domains)",["2","1","3","119","SO2"]],
- ["Tetrahedral",["4","0","4","109.5","CH4"]],
- ["Trigonal pyramidal",["3","1","4","106.8","NH3"]],
- ["Bent (4 domains)",["2","2","4","104.5","H2O"]],
- ["Trigonal bipyramidal",["5","0","5","90,120","PCl5"]],
- ["Seesaw",["4","1","5","180,120,90","SF4"]],
- ["T-shaped",["3","2","5","90,180","ClF3"]],
- ["Linear (5 domains)",["2","3","5","180","XeF2"]],
- ["Octahedral",["6","0","6","90,180","SF6"]],
- ["Square pyramidal",["5","1","6","84.8","BrF5"]],
- ["Square planar",["4","2","6","90,180","XeF4"]]
+["Linear (2 domains)",["2","0","2","180","CO2"]],
+["Trigonal planar",["3","0","3","120","BF3"]],
+["Bent (3 domains)",["2","1","3","119","SO2"]],
+["Tetrahedral",["4","0","4","109.5","CH4"]],
+["Trigonal pyramidal",["3","1","4","106.8","NH3"]],
+["Bent (4 domains)",["2","2","4","104.5","H2O"]],
+["Trigonal bipyramidal",["5","0","5","90,120","PCl5"]],
+["Seesaw",["4","1","5","180,120,90","SF4"]],
+["T-shaped",["3","2","5","90,180","ClF3"]],
+["Linear (5 domains)",["2","3","5","180","XeF2"]],
+["Octahedral",["6","0","6","90,180","SF6"]],
+["Square pyramidal",["5","1","6","84.8","BrF5"]],
+["Square planar",["4","2","6","90,180","XeF4"]]
 ];
 
 const properties = [
- "Atoms bonded",
- "Lone pairs",
- "Electron domains",
- "Bond angles",
- "Example molecule"
+"Atoms bonded",
+"Lone pairs",
+"Electron domains",
+"Bond angles",
+"Example molecule"
 ];
 
 let weights = JSON.parse(localStorage.getItem("weights") || "{}");
 let lastKey = null;
-let currentShape = null;
-let currentProp = null;
+let currentShape, currentProp;
 
-function save() {
+function saveState() {
     localStorage.setItem("weights", JSON.stringify(weights));
 }
 
-function getEnabledProperties() {
-    return [...document.querySelectorAll('input[type=checkbox]:checked')]
+function getEnabledProps() {
+    return [...document.querySelectorAll("input[type=checkbox]:checked")]
         .map(cb => +cb.value);
 }
 
-function normaliseAngles(str) {
-    return str.replace(/°/g,"")
+function parseAngles(str) {
+    return str
+        .replace(/°/g,"")
         .split(/[,;\s]+/)
         .map(Number)
         .filter(n => !isNaN(n))
@@ -159,24 +125,20 @@ function anglesMatch(a,b) {
 function newQuestion() {
     const min = +minShape.value - 1;
     const max = +maxShape.value - 1;
-    const enabled = getEnabledProperties();
-    if (!enabled.length) return;
-
+    const enabled = getEnabledProps();
     const pool = [];
 
     for (let s=min; s<=max; s++) {
         for (const p of enabled) {
             const key = `${s}-${p}`;
+            if (key === lastKey) continue;
             const w = weights[key] ?? 1;
-            for (let i=0;i<w;i++) {
-                if (key !== lastKey) pool.push([s,p]);
-            }
+            for (let i=0;i<w;i++) pool.push([s,p]);
         }
     }
 
     if (!pool.length) return;
-
-    [currentShape,currentProp] = pool[Math.random()*pool.length|0];
+    [currentShape,currentProp] = pool[Math.floor(Math.random()*pool.length)];
     lastKey = `${currentShape}-${currentProp}`;
 
     shapeText.textContent = "Shape: " + geometries[currentShape][0];
@@ -187,77 +149,60 @@ function newQuestion() {
 }
 
 function checkAnswer() {
-    if (currentShape === null) return;
-
     const correct = geometries[currentShape][1][currentProp];
-    const userRaw = answerInput.value;
+    const user = answerInput.value;
     const key = `${currentShape}-${currentProp}`;
     weights[key] ??= 1;
 
-    let correctFlag = false;
-    let explanation = "";
+    let ok=false, why="";
 
     if (currentProp === 3) {
-        const exp = normaliseAngles(correct);
-        const usr = normaliseAngles(userRaw);
-        correctFlag = anglesMatch(exp,usr);
-        if (!correctFlag)
-            explanation = `Expected ${exp.length} angles: ${correct}`;
+        const e=parseAngles(correct), u=parseAngles(user);
+        ok = anglesMatch(e,u);
+        if (!ok) why = `Expected ${e.join("°, ")}°`;
     } else {
-        correctFlag =
-            userRaw.replace(/\s+/g,"").toLowerCase() ===
-            correct.replace(/\s+/g,"").toLowerCase();
-        if (!correctFlag)
-            explanation = `Correct answer: ${correct}`;
+        ok = user.replace(/\s+/g,"").toLowerCase() ===
+             correct.replace(/\s+/g,"").toLowerCase();
+        if (!ok) why = `Correct: ${correct}`;
     }
 
-    if (correctFlag) {
-        resultText.textContent = "Correct";
-        resultText.style.color = "green";
-        if (weights[key] > 1) weights[key]--;
+    if (ok) {
+        resultText.textContent="Correct";
+        resultText.style.color="green";
+        if (weights[key]>1) weights[key]--;
     } else {
-        resultText.textContent = "Incorrect. " + explanation;
-        resultText.style.color = "red";
-        weights[key] = Math.min(weights[key] + 2, 10);
+        resultText.textContent="Incorrect. " + why;
+        resultText.style.color="red";
+        weights[key]=Math.min(weights[key]+2,10);
     }
 
-    save();
+    saveState();
     updateChart();
 }
 
 function updateChart() {
-    weakChart.innerHTML = "";
-    const sorted = Object.entries(weights)
+    weakChart.innerHTML="";
+    Object.entries(weights)
+        .filter(([_,w])=>w>1)
         .sort((a,b)=>b[1]-a[1])
-        .slice(0,5);
-
-    for (const [key,val] of sorted) {
-        const [s,p] = key.split("-").map(Number);
-        const label = `${geometries[s][0]} – ${properties[p]}`;
-
-        const l = document.createElement("div");
-        l.className="chart-label";
-        l.textContent=label;
-
-        const bar = document.createElement("div");
-        bar.className="chart-bar";
-
-        const fill = document.createElement("div");
-        fill.className="chart-fill";
-        fill.style.width = `${val*10}%`;
-
-        bar.appendChild(fill);
-        weakChart.append(l,bar);
-    }
+        .slice(0,5)
+        .forEach(([k,w])=>{
+            const [s,p]=k.split("-").map(Number);
+            const bar=document.createElement("div");
+            bar.className="bar";
+            bar.innerHTML=`<div class="bar-inner" style="width:${w*10}%">
+                ${geometries[s][0]} – ${properties[p]}
+            </div>`;
+            weakChart.appendChild(bar);
+        });
 }
 
-answerInput.addEventListener("keydown", e => {
-    if (e.key === "Enter") checkAnswer();
+answerInput.addEventListener("keydown",e=>{
+    if(e.key==="Enter") checkAnswer();
 });
 
 updateChart();
 newQuestion();
 </script>
-
 </body>
 </html>
