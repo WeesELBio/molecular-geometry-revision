@@ -109,6 +109,7 @@
 <hr>
 
 <h3>Weak topics</h3>
+<button onclick="resetWeakTopics()">Reset weak topics</button>
 <div id="weakChart"></div>
 
 <script>
@@ -256,6 +257,12 @@ function updateChart() {
         bar.appendChild(fill);
         weakChart.append(l,bar);
     }
+}
+
+function resetWeakTopics() {
+    weights = {};
+    localStorage.removeItem("weights");
+    updateChart();
 }
 
 answerInput.addEventListener("keydown", e => {
