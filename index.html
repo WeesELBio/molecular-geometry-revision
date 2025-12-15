@@ -13,53 +13,19 @@
         padding: 16px;
         line-height: 1.4;
     }
-
-    h1 {
-        font-size: 1.4rem;
-        text-align: center;
-    }
-
-    .section {
-        margin-bottom: 16px;
-    }
-
-    label {
-        display: block;
-        margin: 4px 0;
-    }
-
-    input[type="number"],
-    input[type="text"] {
+    h1 { text-align: center; }
+    .section { margin-bottom: 16px; }
+    label { display: block; margin: 4px 0; }
+    input, button {
         width: 100%;
-        padding: 8px;
+        padding: 10px;
         font-size: 1rem;
-        margin-top: 4px;
+        margin-top: 6px;
     }
-
-    button {
-        width: 100%;
-        padding: 12px;
-        font-size: 1rem;
-        margin-top: 8px;
-    }
-
-    .shape {
-        font-size: 1.2rem;
-        font-weight: bold;
-        text-align: center;
-        margin-top: 16px;
-    }
-
-    .question {
-        text-align: center;
-        margin: 8px 0;
-    }
-
-    .result {
-        text-align: center;
-        font-weight: bold;
-        margin-top: 12px;
-    }
+    button { cursor: pointer; }
+    .shape { font-size: 1.2rem; font-weight: bold; text-align: center; }
+    .question { text-align: center; margin: 8px 0; }
+    .result { text-align: center; font-weight: bold; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -78,11 +44,11 @@
 
 <div class="section">
     <strong>Question types</strong>
-    <label><input type="checkbox" checked value="0"> Atoms bonded to central atom</label>
-    <label><input type="checkbox" checked value="1"> Lone pairs</label>
-    <label><input type="checkbox" checked value="2"> Electron domains</label>
-    <label><input type="checkbox" checked value="3"> Ideal bond angle(s)</label>
-    <label><input type="checkbox" checked value="4"> Example molecule</label>
+    <label><input type="checkbox" value="0"> Atoms bonded to central atom</label>
+    <label><input type="checkbox" value="1"> Lone pairs</label>
+    <label><input type="checkbox" value="2"> Electron domains</label>
+    <label><input type="checkbox" value="3"> Ideal bond angle(s)</label>
+    <label><input type="checkbox" value="4"> Example molecule</label>
 </div>
 
 <div class="shape" id="shapeText"></div>
@@ -120,95 +86,120 @@ const properties = [
     "Example molecule"
 ];
 
-const weights = {};
+let weights = JSON.parse(localStorage.getItem("weights")) || {};
+let lastQuestionKey = null;
 let currentShape = null;
 let currentProp = null;
+
+const angleTolerance = 1; // ±1 degree
+
+// Restore checkbox state
+document.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.checked = JSON.parse(localStorage.getItem("prop-" + cb.value)) ?? true;
+});
+
+function saveState() {
+    localStorage.setItem("weights", JSON.stringify(weights));
+    localStorage.setItem("minShape", minShape.value);
+    localStorage.setItem("maxShape", maxShape.value);
+    document.querySelectorAll("input[type=checkbox]").forEach(cb =>
+        localStorage.setItem("prop-" + cb.value, cb.checked)
+    );
+}
 
 function getEnabledProperties() {
     return [...document.querySelectorAll('input[type="checkbox"]:checked')]
         .map(cb => parseInt(cb.value));
 }
 
-function newQuestion() {
-    const min = parseInt(document.getElementById("minShape").value) - 1;
-    const max = parseInt(document.getElementById("maxShape").value) - 1;
+function parseAngles(str) {
+    return str.replace(/°/g, "")
+        .split(/[,;\s]+/)
+        .map(Number)
+        .filter(n => !isNaN(n))
+        .sort((a,b) => a-b);
+}
 
+function anglesMatch(expected, user) {
+    if (expected.length !== user.length) return false;
+    return expected.every((v, i) => Math.abs(v - user[i]) <= angleTolerance);
+}
+
+function newQuestion() {
+    const min = (parseInt(minShape.value) || 1) - 1;
+    const max = (parseInt(maxShape.value) || geometries.length) - 1;
     const enabled = getEnabledProperties();
-    if (enabled.length === 0) {
-        document.getElementById("questionText").textContent =
-            "Select at least one question type.";
-        return;
-    }
+    if (!enabled.length) return;
 
     const pool = [];
-
     for (let s = min; s <= max; s++) {
         for (const p of enabled) {
             const key = `${s}-${p}`;
             const w = weights[key] ?? 1;
-            for (let i = 0; i < w; i++) {
-                pool.push([s, p]);
-            }
+            for (let i = 0; i < w; i++) pool.push([s,p]);
         }
     }
 
-    if (pool.length === 0) return;
+    let choice;
+    do {
+        choice = pool[Math.floor(Math.random() * pool.length)];
+    } while (choice.join("-") === lastQuestionKey && pool.length > 1);
 
-    [currentShape, currentProp] = pool[Math.floor(Math.random() * pool.length)];
+    [currentShape, currentProp] = choice;
+    lastQuestionKey = choice.join("-");
 
-    document.getElementById("shapeText").textContent =
-        "Shape: " + geometries[currentShape][0];
-    document.getElementById("questionText").textContent =
-        "Question: " + properties[currentProp];
-    document.getElementById("answerInput").value = "";
-    document.getElementById("resultText").textContent = "";
+    shapeText.textContent = "Shape: " + geometries[currentShape][0];
+    questionText.textContent = "Question: " + properties[currentProp];
+    answerInput.value = "";
+    resultText.textContent = "";
+    answerInput.focus();
+    saveState();
 }
 
 function checkAnswer() {
-    if (currentShape === null) return;
-
     const correct = geometries[currentShape][1][currentProp];
-    const userRaw = document.getElementById("answerInput").value;
-
     const key = `${currentShape}-${currentProp}`;
     weights[key] = weights[key] ?? 1;
 
-    let isCorrect = false;
+    let correctFlag = false;
+    let feedback = "";
 
-    // SPECIAL HANDLING FOR ANGLES (property index 3)
     if (currentProp === 3) {
-        const splitAngles = str =>
-            str.replace(/\s+/g, "")
-               .split(",")
-               .map(x => x.trim())
-               .filter(x => x.length > 0)
-               .sort();
+        const expected = parseAngles(correct);
+        const user = parseAngles(answerInput.value);
 
-        const expectedList = splitAngles(correct);
-        const userList = splitAngles(userRaw);
-
-        if (expectedList.length === userList.length) {
-            isCorrect = expectedList.every((v, i) => v === userList[i]);
+        if (user.length !== expected.length) {
+            feedback = `Expected ${expected.length} angle(s).`;
+        } else if (!anglesMatch(expected, user)) {
+            feedback = `Expected angles: ${expected.join(", ")}°`;
+        } else {
+            correctFlag = true;
         }
-
     } else {
-        // NORMAL CHECK FOR ALL OTHER PROPERTIES
-        const user = userRaw.replace(/\s+/g, "").toLowerCase();
-        const expected = correct.replace(/\s+/g, "").toLowerCase();
-        isCorrect = (user === expected);
+        const norm = s => s.replace(/\s+/g,"").toLowerCase();
+        correctFlag = norm(answerInput.value) === norm(correct);
+        if (!correctFlag) feedback = `Correct answer: ${correct}`;
     }
 
-    if (isCorrect) {
-        document.getElementById("resultText").textContent = "Correct";
-        document.getElementById("resultText").style.color = "green";
+    if (correctFlag) {
+        resultText.textContent = "Correct";
+        resultText.style.color = "green";
         if (weights[key] > 1) weights[key]--;
     } else {
-        document.getElementById("resultText").textContent =
-            "Incorrect. Correct answer: " + correct;
-        document.getElementById("resultText").style.color = "red";
+        resultText.textContent = "Incorrect. " + feedback;
+        resultText.style.color = "red";
         weights[key] = Math.min(weights[key] + 2, 10);
     }
+
+    saveState();
 }
+
+answerInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") checkAnswer();
+});
+
+minShape.value = localStorage.getItem("minShape") || 1;
+maxShape.value = localStorage.getItem("maxShape") || geometries.length;
 
 newQuestion();
 </script>
