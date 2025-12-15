@@ -59,22 +59,6 @@
         font-weight: bold;
     }
 
-    .chart-bar {
-        background: #ddd;
-        margin: 6px 0;
-        height: 20px;
-        position: relative;
-    }
-
-    .chart-fill {
-        background: #e74c3c;
-        height: 100%;
-    }
-
-    .chart-label {
-        font-size: 0.85rem;
-        margin-bottom: 2px;
-    }
 </style>
 </head>
 <body>
@@ -107,10 +91,6 @@
 <div class="result" id="resultText"></div>
 
 <hr>
-
-<h3>Weak topics</h3>
-<button onclick="resetWeakTopics()">Reset weak topics</button>
-<div id="weakChart"></div>
 
 <script>
 const geometries = [
@@ -230,46 +210,12 @@ function checkAnswer() {
     }
 
     save();
-    updateChart();
-}
-
-function updateChart() {
-    weakChart.innerHTML = "";
-    const sorted = Object.entries(weights)
-        .sort((a,b)=>b[1]-a[1])
-        .slice(0,5);
-
-    for (const [key,val] of sorted) {
-        const [s,p] = key.split("-").map(Number);
-        const label = `${geometries[s][0]} – ${properties[p]}`;
-
-        const l = document.createElement("div");
-        l.className="chart-label";
-        l.textContent=label;
-
-        const bar = document.createElement("div");
-        bar.className="chart-bar";
-
-        const fill = document.createElement("div");
-        fill.className="chart-fill";
-        fill.style.width = `${val*10}%`;
-
-        bar.appendChild(fill);
-        weakChart.append(l,bar);
-    }
-}
-
-function resetWeakTopics() {
-    weights = {};
-    localStorage.removeItem("weights");
-    updateChart();
 }
 
 answerInput.addEventListener("keydown", e => {
     if (e.key === "Enter") checkAnswer();
 });
 
-updateChart();
 newQuestion();
 </script>
 
