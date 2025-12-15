@@ -13,19 +13,61 @@
         padding: 16px;
         line-height: 1.4;
     }
-    h1 { text-align: center; }
-    .section { margin-bottom: 16px; }
-    label { display: block; margin: 4px 0; }
+
+    h1 {
+        font-size: 1.4rem;
+        text-align: center;
+    }
+
+    .section {
+        margin-bottom: 16px;
+    }
+
+    label {
+        display: block;
+        margin: 4px 0;
+    }
+
     input, button {
         width: 100%;
         padding: 10px;
         font-size: 1rem;
         margin-top: 6px;
     }
-    button { cursor: pointer; }
-    .shape { font-size: 1.2rem; font-weight: bold; text-align: center; }
-    .question { text-align: center; margin: 8px 0; }
-    .result { text-align: center; font-weight: bold; margin-top: 12px; }
+
+    button {
+        cursor: pointer;
+    }
+
+    .shape {
+        font-size: 1.2rem;
+        font-weight: bold;
+        text-align: center;
+        margin-top: 16px;
+    }
+
+    .question, .result {
+        text-align: center;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .chart-bar {
+        background: #ddd;
+        margin: 6px 0;
+        height: 20px;
+        position: relative;
+    }
+
+    .chart-fill {
+        background: #e74c3c;
+        height: 100%;
+    }
+
+    .chart-label {
+        font-size: 0.85rem;
+        margin-bottom: 2px;
+    }
 </style>
 </head>
 <body>
@@ -34,151 +76,139 @@
 
 <div class="section">
     <strong>Shape range</strong>
-    <label>Min shape #
-        <input type="number" id="minShape" value="1">
-    </label>
-    <label>Max shape #
-        <input type="number" id="maxShape" value="13">
-    </label>
+    <input type="number" id="minShape" value="1">
+    <input type="number" id="maxShape" value="13">
 </div>
 
 <div class="section">
     <strong>Question types</strong>
-    <label><input type="checkbox" value="0"> Atoms bonded to central atom</label>
-    <label><input type="checkbox" value="1"> Lone pairs</label>
-    <label><input type="checkbox" value="2"> Electron domains</label>
-    <label><input type="checkbox" value="3"> Ideal bond angle(s)</label>
-    <label><input type="checkbox" value="4"> Example molecule</label>
+    <label><input type="checkbox" checked value="0"> Atoms bonded</label>
+    <label><input type="checkbox" checked value="1"> Lone pairs</label>
+    <label><input type="checkbox" checked value="2"> Electron domains</label>
+    <label><input type="checkbox" checked value="3"> Bond angles</label>
+    <label><input type="checkbox" checked value="4"> Example molecule</label>
 </div>
 
 <div class="shape" id="shapeText"></div>
 <div class="question" id="questionText"></div>
 
-<input type="text" id="answerInput" placeholder="Enter answer">
+<input id="answerInput" placeholder="Enter answer">
 
 <button onclick="checkAnswer()">Check answer</button>
 <button onclick="newQuestion()">Next question</button>
 
 <div class="result" id="resultText"></div>
 
+<hr>
+
+<h3>Weak topics</h3>
+<div id="weakChart"></div>
+
 <script>
 const geometries = [
-    ["Linear (2 domains)", ["2","0","2","180","CO2"]],
-    ["Trigonal planar", ["3","0","3","120","BF3"]],
-    ["Bent (3 domains)", ["2","1","3","119","SO2"]],
-    ["Tetrahedral", ["4","0","4","109.5","CH4"]],
-    ["Trigonal pyramidal", ["3","1","4","106.8","NH3"]],
-    ["Bent (4 domains)", ["2","2","4","104.5","H2O"]],
-    ["Trigonal bipyramidal", ["5","0","5","90, 120","PCl5"]],
-    ["Seesaw", ["4","1","5","180, 120, 90","SF4"]],
-    ["T-shaped", ["3","2","5","90, 180","ClF3"]],
-    ["Linear (5 domains)", ["2","3","5","180","XeF2"]],
-    ["Octahedral", ["6","0","6","90, 180","SF6"]],
-    ["Square pyramidal", ["5","1","6","84.8","BrF5"]],
-    ["Square planar", ["4","2","6","90, 180","XeF4"]]
+ ["Linear (2 domains)",["2","0","2","180","CO2"]],
+ ["Trigonal planar",["3","0","3","120","BF3"]],
+ ["Bent (3 domains)",["2","1","3","119","SO2"]],
+ ["Tetrahedral",["4","0","4","109.5","CH4"]],
+ ["Trigonal pyramidal",["3","1","4","106.8","NH3"]],
+ ["Bent (4 domains)",["2","2","4","104.5","H2O"]],
+ ["Trigonal bipyramidal",["5","0","5","90,120","PCl5"]],
+ ["Seesaw",["4","1","5","180,120,90","SF4"]],
+ ["T-shaped",["3","2","5","90,180","ClF3"]],
+ ["Linear (5 domains)",["2","3","5","180","XeF2"]],
+ ["Octahedral",["6","0","6","90,180","SF6"]],
+ ["Square pyramidal",["5","1","6","84.8","BrF5"]],
+ ["Square planar",["4","2","6","90,180","XeF4"]]
 ];
 
 const properties = [
-    "Atoms bonded to central atom",
-    "Lone pairs",
-    "Electron domains",
-    "Ideal bond angle(s)",
-    "Example molecule"
+ "Atoms bonded",
+ "Lone pairs",
+ "Electron domains",
+ "Bond angles",
+ "Example molecule"
 ];
 
-let weights = JSON.parse(localStorage.getItem("weights")) || {};
-let lastQuestionKey = null;
+let weights = JSON.parse(localStorage.getItem("weights") || "{}");
+let lastKey = null;
 let currentShape = null;
 let currentProp = null;
 
-const angleTolerance = 1; // ±1 degree
-
-// Restore checkbox state
-document.querySelectorAll("input[type=checkbox]").forEach(cb => {
-    cb.checked = JSON.parse(localStorage.getItem("prop-" + cb.value)) ?? true;
-});
-
-function saveState() {
+function save() {
     localStorage.setItem("weights", JSON.stringify(weights));
-    localStorage.setItem("minShape", minShape.value);
-    localStorage.setItem("maxShape", maxShape.value);
-    document.querySelectorAll("input[type=checkbox]").forEach(cb =>
-        localStorage.setItem("prop-" + cb.value, cb.checked)
-    );
 }
 
 function getEnabledProperties() {
-    return [...document.querySelectorAll('input[type="checkbox"]:checked')]
-        .map(cb => parseInt(cb.value));
+    return [...document.querySelectorAll('input[type=checkbox]:checked')]
+        .map(cb => +cb.value);
 }
 
-function parseAngles(str) {
-    return str.replace(/°/g, "")
+function normaliseAngles(str) {
+    return str.replace(/°/g,"")
         .split(/[,;\s]+/)
         .map(Number)
         .filter(n => !isNaN(n))
-        .sort((a,b) => a-b);
+        .sort((a,b)=>a-b);
 }
 
-function anglesMatch(expected, user) {
-    if (expected.length !== user.length) return false;
-    return expected.every((v, i) => Math.abs(v - user[i]) <= angleTolerance);
+function anglesMatch(a,b) {
+    if (a.length !== b.length) return false;
+    return a.every((v,i)=>Math.abs(v-b[i])<=1);
 }
 
 function newQuestion() {
-    const min = (parseInt(minShape.value) || 1) - 1;
-    const max = (parseInt(maxShape.value) || geometries.length) - 1;
+    const min = +minShape.value - 1;
+    const max = +maxShape.value - 1;
     const enabled = getEnabledProperties();
     if (!enabled.length) return;
 
     const pool = [];
-    for (let s = min; s <= max; s++) {
+
+    for (let s=min; s<=max; s++) {
         for (const p of enabled) {
             const key = `${s}-${p}`;
             const w = weights[key] ?? 1;
-            for (let i = 0; i < w; i++) pool.push([s,p]);
+            for (let i=0;i<w;i++) {
+                if (key !== lastKey) pool.push([s,p]);
+            }
         }
     }
 
-    let choice;
-    do {
-        choice = pool[Math.floor(Math.random() * pool.length)];
-    } while (choice.join("-") === lastQuestionKey && pool.length > 1);
+    if (!pool.length) return;
 
-    [currentShape, currentProp] = choice;
-    lastQuestionKey = choice.join("-");
+    [currentShape,currentProp] = pool[Math.random()*pool.length|0];
+    lastKey = `${currentShape}-${currentProp}`;
 
     shapeText.textContent = "Shape: " + geometries[currentShape][0];
     questionText.textContent = "Question: " + properties[currentProp];
     answerInput.value = "";
     resultText.textContent = "";
     answerInput.focus();
-    saveState();
 }
 
 function checkAnswer() {
+    if (currentShape === null) return;
+
     const correct = geometries[currentShape][1][currentProp];
+    const userRaw = answerInput.value;
     const key = `${currentShape}-${currentProp}`;
-    weights[key] = weights[key] ?? 1;
+    weights[key] ??= 1;
 
     let correctFlag = false;
-    let feedback = "";
+    let explanation = "";
 
     if (currentProp === 3) {
-        const expected = parseAngles(correct);
-        const user = parseAngles(answerInput.value);
-
-        if (user.length !== expected.length) {
-            feedback = `Expected ${expected.length} angle(s).`;
-        } else if (!anglesMatch(expected, user)) {
-            feedback = `Expected angles: ${expected.join(", ")}°`;
-        } else {
-            correctFlag = true;
-        }
+        const exp = normaliseAngles(correct);
+        const usr = normaliseAngles(userRaw);
+        correctFlag = anglesMatch(exp,usr);
+        if (!correctFlag)
+            explanation = `Expected ${exp.length} angles: ${correct}`;
     } else {
-        const norm = s => s.replace(/\s+/g,"").toLowerCase();
-        correctFlag = norm(answerInput.value) === norm(correct);
-        if (!correctFlag) feedback = `Correct answer: ${correct}`;
+        correctFlag =
+            userRaw.replace(/\s+/g,"").toLowerCase() ===
+            correct.replace(/\s+/g,"").toLowerCase();
+        if (!correctFlag)
+            explanation = `Correct answer: ${correct}`;
     }
 
     if (correctFlag) {
@@ -186,21 +216,46 @@ function checkAnswer() {
         resultText.style.color = "green";
         if (weights[key] > 1) weights[key]--;
     } else {
-        resultText.textContent = "Incorrect. " + feedback;
+        resultText.textContent = "Incorrect. " + explanation;
         resultText.style.color = "red";
         weights[key] = Math.min(weights[key] + 2, 10);
     }
 
-    saveState();
+    save();
+    updateChart();
+}
+
+function updateChart() {
+    weakChart.innerHTML = "";
+    const sorted = Object.entries(weights)
+        .sort((a,b)=>b[1]-a[1])
+        .slice(0,5);
+
+    for (const [key,val] of sorted) {
+        const [s,p] = key.split("-").map(Number);
+        const label = `${geometries[s][0]} – ${properties[p]}`;
+
+        const l = document.createElement("div");
+        l.className="chart-label";
+        l.textContent=label;
+
+        const bar = document.createElement("div");
+        bar.className="chart-bar";
+
+        const fill = document.createElement("div");
+        fill.className="chart-fill";
+        fill.style.width = `${val*10}%`;
+
+        bar.appendChild(fill);
+        weakChart.append(l,bar);
+    }
 }
 
 answerInput.addEventListener("keydown", e => {
     if (e.key === "Enter") checkAnswer();
 });
 
-minShape.value = localStorage.getItem("minShape") || 1;
-maxShape.value = localStorage.getItem("maxShape") || geometries.length;
-
+updateChart();
 newQuestion();
 </script>
 
